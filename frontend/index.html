@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Pulpería - Demo Cloud</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+<body>
+    <main class="container">
+        <hgroup>
+            <h1>Sistema de Gestión - Pulpería</h1>
+            <h2>Demostración de Contenedores y Serverless</h2>
+        </hgroup>
+
+        <section>
+            <h3>Ventas del Día (Desde Docker)</h3>
+            <figure>
+                <table role="grid">
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Producto</th>
+                            <th>Cant.</th>
+                            <th>Total (Lps.)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-ventas">
+                        <tr><td colspan="4">Cargando datos desde el contenedor...</td></tr>
+                    </tbody>
+                </table>
+            </figure>
+        </section>
+
+        <section>
+            <h3>Cierre de Caja (Serverless Computing)</h3>
+            <p>Ejecutar un cálculo pesado bajo demanda sin mantener un servidor encendido 24/7.</p>
+            <button id="btn-serverless" class="secondary" onclick="ejecutarServerless()">
+                Ejecutar Función Serverless
+            </button>
+            <article id="resultado-serverless" style="display: none; margin-top: 1rem;">
+                </article>
+        </section>
+    </main>
+
+    <script>
+        // ATENCIÓN: CAMBIAR URL por la que de Render
+        const API_URL = "http://localhost:3000"; 
+
+        // Cargar datos al iniciar
+        async function cargarVentas() {
+            try {
+                const respuesta = await fetch(`${API_URL}/api/ventas`);
+                const datos = await respuesta.json();
+                
+                const tbody = document.getElementById('tabla-ventas');
+                tbody.innerHTML = ''; // Limpiar tabla
+                
+                datos.forEach(venta => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${venta.hora}</td>
+                            <td>${venta.producto}</td>
+                            <td>${venta.cantidad}</td>
+                            <td>L. ${venta.total.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+            } catch (error) {
+                console.error("Error al conectar con Docker:", error);
+                document.getElementById('tabla-ventas').innerHTML = `<tr><td colspan="4" style="color:red;">Error de conexión. ¿Está corriendo el contenedor?</td></tr>`;
+            }
+        }
+
+        // Simular ejecución Serverless
+        async function ejecutarServerless() {
+            const btn = document.getElementById('btn-serverless');
+            const resultado = document.getElementById('resultado-serverless');
+            
+            btn.setAttribute('aria-busy', 'true');
+            btn.textContent = 'Despertando función (Cold Start)...';
+            resultado.style.display = 'none';
+
+            try {
+                const respuesta = await fetch(`${API_URL}/api/cierre-serverless`, { method: 'POST' });
+                const datos = await respuesta.json();
+                
+                resultado.innerHTML = `
+                    <strong>${datos.mensaje}</strong><br>
+                    Cierre Total: <strong>L. ${datos.totalLempiras.toFixed(2)}</strong><br>
+                    Costo de esta operación: <mark>${datos.costoComputo}</mark>
+                `;
+                resultado.style.display = 'block';
+            } catch (error) {
+                resultado.innerHTML = `<span style="color:red;">Error ejecutando la función.</span>`;
+                resultado.style.display = 'block';
+            } finally {
+                btn.removeAttribute('aria-busy');
+                btn.textContent = 'Ejecutar Función Serverless';
+            }
+        }
+
+        // Iniciar la carga
+        cargarVentas();
+    </script>
+</body>
+</html>
